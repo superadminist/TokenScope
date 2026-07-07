@@ -48,6 +48,6 @@ jobs:
           prerelease: ${{ steps.channel.outputs.is_prerelease }}
           make_latest: ${{ steps.channel.outputs.make_latest }}
           files: |
-            dist/TokenScope-v*-windows-x64.exe
-            dist/TokenScopeUpdater-v*-windows-x64.exe
+            dist/TokenSpider-v*-windows-x64.exe
+            dist/TokenSpiderUpdater-v*-windows-x64.exe
             dist/SHA256SUMS.txt

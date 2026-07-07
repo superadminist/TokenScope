@@ -1,4 +1,4 @@
-"""TokenScope real-time LLM API usage monitor."""
+"""TokenSpider real-time LLM API usage monitor."""
 
 from __future__ import annotations
 

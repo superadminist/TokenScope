@@ -22,7 +22,7 @@ WAIT_TIMEOUT = 0x00000102
 
 def _default_log_path() -> Path:
     appdata = Path(os.environ.get("APPDATA", Path.home()))
-    return appdata / APP_STORAGE_NAME / "TokenScopeUpdater.log"
+    return appdata / APP_STORAGE_NAME / "TokenSpiderUpdater.log"
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -38,7 +38,7 @@ def _build_parser() -> argparse.ArgumentParser:
 
 def _configure_logging(log_path: Path) -> logging.Logger:
     log_path.parent.mkdir(parents=True, exist_ok=True)
-    logger = logging.getLogger("TokenScopeUpdater")
+    logger = logging.getLogger("TokenSpiderUpdater")
     logger.setLevel(logging.INFO)
     logger.handlers.clear()
     handler = logging.FileHandler(log_path, encoding="utf-8")

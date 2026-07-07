@@ -70,7 +70,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name="TokenScope",
+    name="TokenSpider",
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

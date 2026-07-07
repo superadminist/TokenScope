@@ -16,13 +16,15 @@ if str(ROOT) not in sys.path:
 
 from app_identity import (
     APP_VERSION,
+    MAIN_EXECUTABLE_NAME,
     MAIN_RELEASE_ASSET_TEMPLATE,
+    UPDATER_EXECUTABLE_NAME,
     UPDATER_RELEASE_ASSET_TEMPLATE,
 )
 
 DIST_DIR = ROOT / "dist"
 MAIN_SPEC = ROOT / "TokenSpider.spec"
-UPDATER_SPEC = ROOT / "TokenScopeUpdater.spec"
+UPDATER_SPEC = ROOT / "TokenSpiderUpdater.spec"
 SHA_FILE = DIST_DIR / "SHA256SUMS.txt"
 
 
@@ -70,8 +72,10 @@ def build_release(*, skip_smoke_test: bool) -> None:
     _run([sys.executable, "-m", "PyInstaller", "--clean", "--noconfirm", str(MAIN_SPEC)])
     _run([sys.executable, "-m", "PyInstaller", "--clean", "--noconfirm", str(UPDATER_SPEC)])
 
-    main_exe = DIST_DIR / "TokenScope.exe"
-    updater_exe = DIST_DIR / "TokenScopeUpdater.exe"
+    # Reuse the identity constants so build outputs and release asset names stay
+    # aligned after repository/branding adjustments.
+    main_exe = DIST_DIR / MAIN_EXECUTABLE_NAME
+    updater_exe = DIST_DIR / UPDATER_EXECUTABLE_NAME
     if not main_exe.exists() or not updater_exe.exists():
         raise FileNotFoundError("PyInstaller did not produce both executables")
 
@@ -85,7 +89,7 @@ def build_release(*, skip_smoke_test: bool) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Build TokenScope release assets")
+    parser = argparse.ArgumentParser(description="Build TokenSpider release assets")
     parser.add_argument("--skip-smoke-test", action="store_true")
     args = parser.parse_args(argv)
     build_release(skip_smoke_test=args.skip_smoke_test)

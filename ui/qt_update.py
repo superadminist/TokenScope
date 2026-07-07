@@ -40,6 +40,7 @@ from app_update import (
     skipped_version,
     status_summary,
 )
+from app_identity import MAIN_EXECUTABLE_NAME
 from ui.qt_theme import C_SUBTEXT
 
 
@@ -271,7 +272,7 @@ class AppUpdateController(QObject):
                 QMessageBox.information(
                     parent or self._owner,
                     "软件更新",
-                    "开发运行模式下不支持自更新，请使用打包后的 TokenScope.exe 验证更新流程。",
+                    f"开发运行模式下不支持自更新，请使用打包后的 {MAIN_EXECUTABLE_NAME} 验证更新流程。",
                 )
             return
         channel = str(config_manager.get("UPDATE_CHANNEL", "stable"))

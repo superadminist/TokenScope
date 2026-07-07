@@ -38,12 +38,12 @@ def test_pyqtgraph_startup_modules_are_packaged():
 def test_main_executable_uses_stable_name_and_project_icon():
     options = _call_keywords("TokenSpider.spec", "EXE")
 
-    assert options["name"] == "TokenScope"
+    assert options["name"] == "TokenSpider"
     assert options["icon"] == ["assets/TokenSpider.ico"]
 
 
 def test_updater_executable_is_packaged_separately():
-    options = _call_keywords("TokenScopeUpdater.spec", "EXE")
+    options = _call_keywords("TokenSpiderUpdater.spec", "EXE")
 
-    assert options["name"] == "TokenScopeUpdater"
+    assert options["name"] == "TokenSpiderUpdater"
     assert options["icon"] == ["assets/TokenSpider.ico"]
