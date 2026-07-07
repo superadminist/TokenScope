@@ -32,10 +32,8 @@ from app_update import (
     format_bytes,
     format_speed,
     is_packaged_windows_executable,
-    last_prompted_version,
     launch_updater,
     mark_skipped_version,
-    remember_prompted_version,
     release_display_time,
     skipped_version,
     status_summary,
@@ -217,6 +215,8 @@ class AppUpdateController(QObject):
         self._download_worker: UpdateDownloadWorker | None = None
         self._progress_dialog: DownloadProgressDialog | None = None
         self._latest_release: ReleaseInfo | None = None
+        # 自动检查只在本次运行内去重；跨重启仍应再次提醒，避免用户只能手动点检查更新。
+        self._prompted_versions_in_session: set[str] = set()
         self.status_changed.emit(self.status_text())
         self.reload_cached_release()
 
@@ -311,9 +311,9 @@ class AppUpdateController(QObject):
             return
 
         version = result.latest_release.version
-        if version == skipped_version() or version == last_prompted_version():
+        if version == skipped_version() or version in self._prompted_versions_in_session:
             return
-        remember_prompted_version(version)
+        self._prompted_versions_in_session.add(version)
         self._prompt_for_release(result.latest_release, parent or self._owner)
 
     def _prompt_for_release(self, release: ReleaseInfo, parent: QWidget) -> None:

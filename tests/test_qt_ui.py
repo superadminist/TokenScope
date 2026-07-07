@@ -8,8 +8,9 @@ os.environ["APPDATA"] = str(Path.cwd() / ".test-appdata")
 
 from PySide6.QtCore import QEvent, QPoint, QPointF, Qt
 from PySide6.QtGui import QKeyEvent
-from PySide6.QtWidgets import QApplication, QDialog, QLabel, QLineEdit, QScrollArea, QToolButton
+from PySide6.QtWidgets import QApplication, QDialog, QLabel, QLineEdit, QScrollArea, QToolButton, QWidget
 
+from app_update import CheckResult, ReleaseAsset, ReleaseInfo, SemVer
 import config_manager
 from data.store import TokenData
 from ui.geometry import WorkArea
@@ -27,6 +28,7 @@ from ui.qt_theme import (
     LOWER_CARD_HEIGHT,
     METRIC_CARD_HEIGHT,
 )
+from ui.qt_update import AppUpdateController
 from ui.qt_widget import FloatingWidget
 
 
@@ -48,6 +50,32 @@ def sample_data() -> TokenData:
         last_success_at=datetime.now(),
         total_cost_cny=12.34,
         daily_usage=rows,
+    )
+
+
+def sample_release(version: str = "1.3.4") -> ReleaseInfo:
+    return ReleaseInfo(
+        version=version,
+        semver=SemVer.parse(version),
+        tag_name=f"v{version}",
+        published_at="2026-07-07T08:00:00Z",
+        body="Bug fixes",
+        is_prerelease=False,
+        app_asset=ReleaseAsset(
+            name=f"TokenSpider-v{version}-windows-x64.exe",
+            download_url=f"https://github.com/chenyifei142/TokenSpider/releases/download/v{version}/TokenSpider-v{version}-windows-x64.exe",
+            size=10,
+        ),
+        updater_asset=ReleaseAsset(
+            name=f"TokenSpiderUpdater-v{version}-windows-x64.exe",
+            download_url=f"https://github.com/chenyifei142/TokenSpider/releases/download/v{version}/TokenSpiderUpdater-v{version}-windows-x64.exe",
+            size=5,
+        ),
+        checksum_asset=ReleaseAsset(
+            name="SHA256SUMS.txt",
+            download_url=f"https://github.com/chenyifei142/TokenSpider/releases/download/v{version}/SHA256SUMS.txt",
+            size=2,
+        ),
     )
 
 
@@ -601,6 +629,54 @@ def test_settings_window_exposes_update_controls_without_controller():
     assert not window.skip_update_button.isEnabled()
     assert window.update_status_label.text()
     window.close()
+
+
+def test_auto_update_prompt_only_deduplicates_within_current_session():
+    release = sample_release()
+    result = CheckResult(
+        current_version="1.3.3",
+        latest_release=release,
+        update_available=True,
+        message=f"发现新版本 v{release.version}",
+    )
+    first_owner = QWidget()
+    first_controller = AppUpdateController(first_owner)
+    second_owner = QWidget()
+    second_controller = AppUpdateController(second_owner)
+
+    try:
+        with patch("ui.qt_update.skipped_version", return_value=""):
+            with patch.object(first_controller, "_prompt_for_release") as first_prompt:
+                first_controller._finish_check(result, None, manual=False, parent=first_owner)
+                first_controller._finish_check(result, None, manual=False, parent=first_owner)
+                assert first_prompt.call_count == 1
+
+            with patch.object(second_controller, "_prompt_for_release") as second_prompt:
+                second_controller._finish_check(result, None, manual=False, parent=second_owner)
+                assert second_prompt.call_count == 1
+    finally:
+        first_owner.close()
+        second_owner.close()
+
+
+def test_manual_update_check_still_allows_reprompt_for_same_version():
+    release = sample_release()
+    result = CheckResult(
+        current_version="1.3.3",
+        latest_release=release,
+        update_available=True,
+        message=f"发现新版本 v{release.version}",
+    )
+    owner = QWidget()
+    controller = AppUpdateController(owner)
+
+    try:
+        with patch.object(controller, "_prompt_for_release") as prompt:
+            controller._finish_check(result, None, manual=True, parent=owner)
+            controller._finish_check(result, None, manual=True, parent=owner)
+            assert prompt.call_count == 2
+    finally:
+        owner.close()
 
 
 def test_settings_window_wraps_content_in_scroll_area():
