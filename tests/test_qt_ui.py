@@ -170,6 +170,23 @@ def test_panel_charts_keep_dark_background_and_compact_heatmap_height():
     panel.close()
 
 
+def test_activity_summary_keeps_clear_of_section_drag_handle():
+    panel = MainPanel()
+    panel.resize(820, 550)
+    panel.update_data(sample_data())
+    panel.show()
+    APP.processEvents()
+
+    summary_top_right = panel.activity_summary.mapTo(
+        panel.middle_section,
+        panel.activity_summary.rect().topRight(),
+    )
+    handle_left = panel.middle_section.drag_handle.x()
+
+    assert summary_top_right.x() < handle_left
+    panel.close()
+
+
 def test_panel_uses_shared_glass_theme_and_fluent_action_buttons():
     panel = MainPanel()
     buttons = panel.findChildren(QToolButton, "panelToolButton")
@@ -502,6 +519,44 @@ def test_edge_snap_uses_one_eased_animation_and_delayed_hide():
             before = widget.pos()
             widget._do_edge_hide()
             assert widget.pos() == before
+
+        widget._closed = True
+        widget.hide()
+
+
+def test_edge_snap_accepts_ball_that_already_overlaps_screen_edge():
+    with patch("ui.qt_widget.TokenData.fetch", return_value=sample_data()):
+        widget = FloatingWidget()
+        with patch.object(widget, "_work_area", return_value=WorkArea(0, 0, 1920, 1080)):
+            # 模拟按住球体中间拖到边缘：窗口左上角会越过边缘，但球本体已经接触屏幕边界。
+            widget.move(-48, 200)
+            assert widget._try_edge_snap()
+            assert widget._edge_direction == "left"
+
+            widget._edge_unsnap()
+            widget.move(1872, 200)
+            assert widget._try_edge_snap()
+            assert widget._edge_direction == "right"
+
+        widget._closed = True
+        widget.hide()
+
+
+def test_edge_unsnap_clears_hover_state_before_next_snap():
+    with patch("ui.qt_widget.TokenData.fetch", return_value=sample_data()):
+        widget = FloatingWidget()
+        widget.move(12, 200)
+        with patch.object(widget, "_work_area", return_value=WorkArea(0, 0, 1920, 1080)):
+            assert widget._try_edge_snap()
+            widget._edge_hovering = True
+
+            widget._edge_unsnap()
+            assert widget._edge_hovering is False
+
+            widget.move(12, 200)
+            assert widget._try_edge_snap()
+            widget._do_edge_hide()
+            assert widget._edge_hidden is True
 
         widget._closed = True
         widget.hide()

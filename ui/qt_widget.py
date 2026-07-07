@@ -430,8 +430,18 @@ class FloatingWidget(QWidget):
         x, y = self.x(), self.y()
         threshold = 36
 
-        left_d = x - work.left
-        right_d = work.right - (x + size)
+        # 拖拽时鼠标通常抓在球体中间；只看窗口左上角会要求用户把球拖得过深，
+        # 导致“已经碰到边缘但仍不吸附”。这里按整个球体与边缘的最近距离判定，
+        # 只要球已经接触/覆盖边缘，就按 0 距离立即吸附。
+        def edge_distance(edge_x: int) -> int:
+            ball_left = x
+            ball_right = x + size
+            if ball_left <= edge_x <= ball_right:
+                return 0
+            return min(abs(ball_left - edge_x), abs(ball_right - edge_x))
+
+        left_d = edge_distance(work.left)
+        right_d = edge_distance(work.right)
         candidates = [
             ("left", left_d),
             ("right", right_d),
@@ -533,6 +543,9 @@ class FloatingWidget(QWidget):
         self._edge_hide_timer.stop()
         self._edge_leave_timer.stop()
         self._edge_hover_check.stop()
+        # 取消贴边时必须清掉悬停唤出状态；否则下次重新贴边会被误判为仍在悬停，
+        # 自动隐藏会直接被跳过。
+        self._edge_hovering = False
         self._edge_snapped = False
         self._edge_direction = ""
         self._edge_hidden = False

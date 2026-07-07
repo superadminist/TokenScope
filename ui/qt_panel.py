@@ -895,6 +895,9 @@ class MainPanel(QFrame):
         activity_layout.setSpacing(4)
         self.activity_card.setFixedHeight(ACTIVITY_CARD_HEIGHT)
         activity_header = QHBoxLayout()
+        # 中层卡片的拖拽手柄覆盖在右上角；标题行预留同等安全区，
+        # 避免热力图摘要文字在窄宽度下与手柄重叠。
+        activity_header.setContentsMargins(0, 0, 36, 0)
         activity_title = QLabel("Token 活动")
         activity_title.setObjectName("sectionTitle")
         self.activity_summary = QLabel("暂无 Token 活动")
