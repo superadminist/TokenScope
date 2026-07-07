@@ -8,7 +8,7 @@ os.environ["APPDATA"] = str(Path.cwd() / ".test-appdata")
 
 from PySide6.QtCore import QEvent, QPoint, QPointF, Qt
 from PySide6.QtGui import QKeyEvent
-from PySide6.QtWidgets import QApplication, QDialog, QLabel, QLineEdit, QToolButton
+from PySide6.QtWidgets import QApplication, QDialog, QLabel, QLineEdit, QScrollArea, QToolButton
 
 import config_manager
 from data.store import TokenData
@@ -545,4 +545,18 @@ def test_settings_window_exposes_update_controls_without_controller():
     assert window.check_updates_button.text() == "检查更新"
     assert not window.skip_update_button.isEnabled()
     assert window.update_status_label.text()
+    window.close()
+
+
+def test_settings_window_wraps_content_in_scroll_area():
+    with (
+        patch("ui.qt_settings.config_manager.load_config", return_value=config_manager.all_config()),
+        patch("ui.qt_settings.config_manager.all_config", return_value=config_manager.all_config()),
+    ):
+        window = SettingsWindow()
+
+    scroll_area = window.findChild(QScrollArea)
+    assert scroll_area is window.scroll_area
+    assert scroll_area.widgetResizable() is True
+    assert scroll_area.widget() is window.content
     window.close()

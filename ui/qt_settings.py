@@ -9,6 +9,7 @@ from __future__ import annotations
 from typing import Any, Callable, Union
 
 from PySide6.QtCore import QThread, Signal
+from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -21,6 +22,7 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QPlainTextEdit,
     QPushButton,
+    QScrollArea,
     QSpinBox,
     QVBoxLayout,
     QWidget,
@@ -71,8 +73,17 @@ class SettingsWindow(QDialog):
         self._test_config_backup: dict[str, Any] | None = None
 
         root = QVBoxLayout(self)
-        root.setContentsMargins(24, 20, 24, 20)
-        root.setSpacing(14)
+        root.setContentsMargins(0, 0, 0, 0)
+        root.setSpacing(0)
+        self.scroll_area = QScrollArea(self)
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setFrameShape(QFrame.Shape.NoFrame)
+        root.addWidget(self.scroll_area)
+        self.content = QWidget()
+        self.scroll_area.setWidget(self.content)
+        content_layout = QVBoxLayout(self.content)
+        content_layout.setContentsMargins(24, 20, 24, 20)
+        content_layout.setSpacing(14)
         title = QLabel("运行配置")
         title.setStyleSheet("font-size: 18px; font-weight: 700;")
 
@@ -170,15 +181,20 @@ class SettingsWindow(QDialog):
         actions.addWidget(cancel)
         actions.addWidget(save)
 
-        root.addWidget(title)
-        root.addLayout(picker_row)
-        root.addWidget(self.credentials_card, 1)
-        root.addLayout(global_form)
-        root.addWidget(self.update_card)
-        root.addWidget(self.feedback)
-        root.addLayout(actions)
+        content_layout.addWidget(title)
+        content_layout.addLayout(picker_row)
+        content_layout.addWidget(self.credentials_card, 1)
+        content_layout.addLayout(global_form)
+        content_layout.addWidget(self.update_card)
+        content_layout.addWidget(self.feedback)
+        content_layout.addLayout(actions)
         self._load_values()
         self._bind_update_controller()
+        self._sync_window_size()
+
+    def showEvent(self, event) -> None:
+        super().showEvent(event)
+        self._sync_window_size()
 
     def _bind_update_controller(self) -> None:
         if self.update_controller is None:
@@ -202,6 +218,20 @@ class SettingsWindow(QDialog):
         self._remember_visible_credentials()
         provider_id = self.provider_combo.currentData()
         self._render_credentials(provider_id)
+
+    def _sync_window_size(self) -> None:
+        self.content.adjustSize()
+        content_size = self.content.sizeHint()
+        screen = self.screen() or QGuiApplication.primaryScreen()
+        if screen is not None:
+            # Win10 在高缩放或任务栏较高时，可用工作区会明显变小；这里限制
+            # 对话框高度并保留滚动，避免底部按钮被裁到屏幕外却无法操作。
+            max_height = max(360, screen.availableGeometry().height() - 80)
+        else:
+            max_height = content_size.height()
+        target_width = min(self.maximumWidth(), max(self.minimumWidth(), content_size.width()))
+        target_height = min(content_size.height(), max_height)
+        self.resize(target_width, target_height)
 
     def _remember_visible_credentials(self) -> None:
         if not self._rendered_provider_id:
@@ -253,6 +283,7 @@ class SettingsWindow(QDialog):
             self._provider_widgets[field] = edit
             self.credentials_layout.addWidget(row_widget)
         self._rendered_provider_id = provider_id
+        self._sync_window_size()
 
     @staticmethod
     def _build_credential_row(
